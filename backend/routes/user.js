@@ -1,9 +1,10 @@
 const express = require('express')
-const { User } = require('../db')
+const { User, Account } = require('../db')
 const zod = require('zod')
 const jwt = require('jsonwebtoken')
-const JWT_SECRET = require('../config')
-const authMiddleware = require('../middleware')
+const { JWT_SECRET } = require('../config')
+const { authMiddleware } = require('../middleware')
+const bcrypt = require('bcrypt')
 
 const router = express.Router()
 
@@ -25,17 +26,23 @@ router.post('/signup', async (req,res) => {
 
       const existingUser = User.findOne( {username: req.body.username} )
 
-      if( existingUser ){
+      if( existingUser.username ){
             return res.status(411).json({ message : "Email already taken" })
       }
 
-      const hashed_pwd = bcrypt.hash( req.body.password, 10 ) // 10 salt rounds
+      const hashed_pwd = await bcrypt.hash( req.body.password, 10 ) // 10 salt rounds
 
       const user = await User.create({
             username: req.body.username,
             firstName: req.body.firstName,
             lastName: req.body.lastName,
             password: hashed_pwd,
+      })
+
+      // To give the user a random balance initially, between 1 and 1000
+      await Account.create({
+            userId: user._id,
+            balance: 1 + Math.random() * 1000
       })
 
       const TOKEN = jwt.sign({
@@ -65,7 +72,7 @@ router.post('/signin', async (req,res) => {
 
       const { username, password } = req.body
 
-      const user = User.findOne({ username })
+      const user = await User.findOne({ username })
 
       if( !user ){ return res.status(411).json({ message : "Error while logging in" }) }
 
