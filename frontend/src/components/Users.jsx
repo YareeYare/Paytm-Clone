@@ -9,9 +9,20 @@ export default function Users() {
       const [filter, setFilter] = useState('')
 
       useEffect(() => {
+            DeboucedGetUsers()
+      },[filter])
+
+      let timeout
+      function DeboucedGetUsers() {
+            clearTimeout( timeout )
+            timeout = setTimeout(() => GetUsers(),700)
+      }
+
+      function GetUsers() {
             axios.get('http://localhost:3000/api/v1/user/bulk?filter=' + filter)
                   .then( response => setUsers( response.data.user ) )
-      },[filter])
+      }
+
 
 console.log(filter)
 
